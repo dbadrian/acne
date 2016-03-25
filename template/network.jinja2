@@ -69,7 +69,11 @@ class {{ meta.name }}(chainer.Chain):
         # Safe is good
         self.train = False
 
-    def __call__(self, x, target_layer):
+    def __call__(self,
+                {% for var in data %}
+                    {{ var }},
+                {% endfor %}
+                ):
         # Run the forward
         {% for output in network["__output__"] %} {{ output }}, {% endfor %} = \
             forward( {% for input in network["__input__"] %} {{ input }}, {% endfor %} )
@@ -88,17 +92,7 @@ class {{ meta.name }}(chainer.Chain):
         {% endfor %}
 
         # Calculate total_final_loss
-        {% for loss_name in losses[""] %}
-            # Calculate the loss as temporary variable
-            {{ loss_name }} = {{ loss_def["type"] }}(
-                                                        {% for param, value in loss_def["params"].iteritems() %}
-                                                            {{ param }}={{ value }}
-                                                        {% endfor %}
-                                                    )
-            # Store the float value (should be smaller than the total loss)
-            self.{{ loss_name }}_var = {{ loss_name }}.data
-        {% endfor %}
-
+        self.loss = {% for loss_name, weight in losses["__loss__"] %} {{ weight }} * {{ loss_name }} +, {% endfor %} 
 
         # Return output 
 

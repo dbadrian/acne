@@ -16,3 +16,9 @@ GENERATE NETWORK:
 		getattr(object, attrname)
 		setattr(object, attrname, value)
 	to set parameters
+
+
+	todo:
+
+	change outer layer to lists, as a dict is really not required on that scope
+	we need ordereddict otherwise, but still we only iterate over it anyWAY
