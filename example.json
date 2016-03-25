@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "name": "The Best Network in the world",
+    "work_dir": "will store shit",
+    "eval_dir": "where to post evaluations",
+    "model_dir": "where to store models",
+    "generate_computational_graph": true
+  },
+  "data": {
+    "data_var_1": {
+      "name": "Visual",
+      "shape": [
+        256,
+        256,
+        3
+      ],
+      "dtype": "uint8",
+      "container": "path/to/the/container/var1"
+    },
+    "data_var_2": {
+      "name": "Textual",
+      "shape": [
+        300
+      ],
+      "dtype": "float32",
+      "container": "path/to/the/container/var2"
+    },
+    "data_var_3": {
+      "name": "Class Labels",
+      "shape": [
+        1645458
+      ],
+      "dtype": "float32",
+      "container": "path/to/the/container/var2"
+    }
+  },
+  "network": {
+    "layer1": {
+      "type": "Convolution2D",
+      "x": "data_var_1",
+      "params": {
+        "in_channels": 3,
+        "out_channels": 64,
+        "ksize": 2,
+        "stride": 1,
+        "pad": 0,
+        "wscale": 1,
+        "bias": 0,
+        "nobias": false,
+        "use_cudnn": true,
+        "initialW": null,
+        "initial_bias": null
+      }
+    },
+    "layer2": {
+      "type": "Convolution2D",
+      "x": "layer1",
+      "params": {
+        "in_channels": 64,
+        "out_channels": 64,
+        "ksize": 2,
+        "stride": 1,
+        "pad": 0,
+        "wscale": 1,
+        "bias": 0,
+        "nobias": false,
+        "use_cudnn": true,
+        "initialW": null,
+        "initial_bias": null
+      }
+    }
+  },
+  "loss": {
+    "visual_loss": {
+      "type": "mean_squared_error",
+      "x0": "layer2",
+      "x1": "data_var_1"
+    },
+    "textual_loss": {
+      "type": "mean_squared_error",
+      "x0": "layer2",
+      "x1": "data_var_2"
+    },
+    "class_loss": {
+      "type": "softmax_cross_entropy",
+      "x": "layer2",
+      "t": "data_var_3",
+      "params": {
+        "use_cudnn": true,
+        "normalize": true
+      }
+    },
+    "accuracy": {
+      "func": "1 - $class_loss"
+    },
+    "__loss__": [
+      [
+        "visual_loss",
+        0.7
+      ],
+      [
+        "textual_loss",
+        0.3
+      ],
+      [
+        "class_loss",
+        1
+      ]
+    ]
+  },
+  "optimizer": {
+    "type": "MomentumSGD",
+    "params": {
+      "lr": 0.01,
+      "momentum": 0.9
+    }
+  }
+}
