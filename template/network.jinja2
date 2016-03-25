@@ -15,42 +15,36 @@ class {{ meta.name }}(chainer.Chain):
         # We add links outside the initializer
         # This allows more complex manipulations in __call__
         # and forward
-        self.chain = []
+        self.chain = OrderedDict()
         self.variables = {}
 
         {% for layer_name, layer_def in network.iteritems() %}
-            chain += [
+            chain[{{ layer_name }}] = 
                         # Check if Function or Link and treat accordingly
                         {% if layer_def["type"].startswith('L')  %}
                             # It is a Link, phew
-                            (
-                                '{{ layer_name }}',
-                                {{ layer_def["type"] }}(
-                                                            {% for param, value in layer_def["params"].iteritems() %}
-                                                                {{ param }}={{ value }}
-                                                            {% endfor %}
-                                                       )
-                            )
+                            {{ layer_def["type"] }}(
+                                                        {% for param, value in layer_def["params"].iteritems() %}
+                                                            {{ param }}={{ value }}
+                                                        {% endfor %}
+                                                   )
                         {% else %}
                             # It is a Function, how annoying... they can have runtime
                             # parameters we need to handle correctly...somehow...acne...
-                            (
-
-                                TOODOODOOTOTODD
-                                '{{ layer_name }}',
-                                f = lambda self, x: {{ layer_def["type"] }}(
-                                                                                {% for param, value in layer_def["params"].iteritems() %}
-                                                                                        
-                                                                                    {% if param in network["__states__"] %}
-                                                                                        {{ param }}={{ value }}
-                                                                                    {% else %}
-                                                                                        {{ param }}=self.{{ value }}
-                                                                                    {% endif %}
-                                                                                {% endfor %}
-                                                                           )
-                            )
+                            lambda self, {% for input in layer_def["input"].keys() %}{{ input }}{% endfor %}:\
+                                                {{ layer_def["type"] }}(
+                                                                            {% for input, value in layer_def["input"].iteritems() %}
+                                                                                {{ input }}={{ value }}
+                                                                            {% endfor %}
+                                                                            {% for param, value in layer_def["params"].iteritems() %}
+                                                                                {% if param in network["__states__"] %}
+                                                                                    {{ param }}={{ value }}
+                                                                                {% else %}
+                                                                                    {{ param }}=self.{{ value }}
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                       )
                         {% endif %}
-                     ]
 
             # Sometimes we want to be able to extract several activatiosn at the same time,
             # so we need to be able to store intermediate results (only the data...)
@@ -72,9 +66,9 @@ class {{ meta.name }}(chainer.Chain):
         {% endfor %}
 
         # Register Links with the Chainer library
-        for link in self.chain:
-            if link[0].startswith('L')::
-                self.add_link(*link)
+        for link_name, link in self.chain.iteritems():
+            if llink_name.startswith('L')::
+                self.add_link(link)
 
     def __call__(self,
                 {% for var in data %}
@@ -113,19 +107,31 @@ class {{ meta.name }}(chainer.Chain):
                 {% endfor %}
                 target_layer = None):
 
-        {% for layer_name, layer_def in network %}
+        {% for layer_name, layer_def in network.iteritems() %}
+            # Check if Function or Link and treat accordingly
+            {% if layer_def["type"].startswith('L')  %}
+                # It is a Link, phew
+                {{ layer_name }} = chain[{{ layer_name }}](
+                                                                {% for input, value in layer_def["input"].iteritems() %}
+                                                                    {{ input }}={{ value }}
+                                                                {% endfor %}
+                                                          )
+            {% else %}
+                # It is a Function, how annoying... they can have runtime
+                # parameters we need to handle correctly...somehow...acne...
+                {{ layer_name }} = chain[{{ layer_name }}](self, # TODO: not sure if necessary to call with self...test that
+                                                                {% for input, value in layer_def["input"].iteritems() %}
+                                                                    {{ input }}={{ value }}
+                                                                {% endfor %}
+                                                          )
+            {% endif %}
 
-        {% endfor %}
+            # Store variable if defined so...
+            if "{{ layer_name }}" in self.variables:
+                self.variables["{{ layer_name }}"] = {{ layer_name }}.data
 
-
-        for name, f in self.chain:
-            x = f(x)
-
-            # Store variable
-            if name in self.variables:
-                self.variables[name] = x.data
-
-            if name == target_layer:
+            if "{{ layer_name }}" == target_layer:
                 break
+        {% endfor %}
 
         return {% for output in network["__output__"] %} {{ output }}, {% endfor %}

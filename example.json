@@ -55,8 +55,10 @@
     "layer1": {
       "type": "L.Convolution2D",
       "is_variable": false,
-      "params": {
+      "input": {
         "x": "data_var_1",
+      },
+      "params": {
         "in_channels": 3,
         "out_channels": 64,
         "ksize": 2,
@@ -73,8 +75,10 @@
     "layer2": {
       "type": "L.Convolution2D",
       "is_variable": true,
-      "params": {
+      "input": {
         "x": "layer1",
+      },
+      "params": {
         "in_channels": 64,
         "out_channels": 64,
         "ksize": 2,
@@ -91,8 +95,10 @@
     "layer3": {
       "type": "F.dropout",
       "is_variable": false,
-      "params": {
+      "input": {
         "x": "layer2",
+      },
+      "params": {
         "ratio": 0.5,
         "train": "notrain"
       }
