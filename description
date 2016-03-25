@@ -1,0 +1,18 @@
+Two Fold:
+
+	- Generate a network.py file from the the json file
+	- Generate a runner.py file, which runs the network
+
+
+GENERATE NETWORK:
+
+	0) Validate the json based on must-have values
+	and if a minimum of certain things are defined, such as layers etc.
+
+	i) 	Generate dictionary containing "name": function
+	ii) 
+
+	Use
+		getattr(object, attrname)
+		setattr(object, attrname, value)
+	to set parameters

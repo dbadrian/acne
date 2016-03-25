@@ -15,58 +15,103 @@ class {{ meta.name }}(chainer.Chain):
         # We add links outside the initializer
         # This allows more complex manipulations in __call__
         # and forward
-        chain = []
+        self.chain = []
 
         {% for layer_name, layer_def in network.iteritems() %}
             chain += [
-                        ('{{ layer_name }}', {{ layer_def["type"] }}(
-                                                                        {% for param, value in layer_def["params"].iteritems() %}
-                                                                            {{ param }}={{ value }}
-                                                                        {% endfor %}
-                                                                    )
-                        )
+                        # Check if Function or Link and treat accordingly
+                        {% if layer_def["type"].startswith('L')  %}
+                            # It is a Link, phew
+                            (
+                                '{{ layer_name }}',
+                                {{ layer_def["type"] }}(
+                                                            {% for param, value in layer_def["params"].iteritems() %}
+                                                                {{ param }}={{ value }}
+                                                            {% endfor %}
+                                                       )
+                            )
+                        {% else %}
+                            # It is a Function, how annoying... they can have runtime
+                            # parameters we need to handle correctly...somehow...acne...
+                            (
+
+                                TOODOODOOTOTODD
+                                '{{ layer_name }}',
+                                f = lambda self, x: {{ layer_def["type"] }}(
+                                                                                {% for param, value in layer_def["params"].iteritems() %}
+                                                                                    {{ param }}={{ value }}
+                                                                                {% endfor %}
+                                                                           )
+                            )
+                        {% endif %}
                      ]
+
+            # Sometimes we want to be able to extract several activatiosn at the same time,
+            # so we need to be able to store intermediate results (only the data...)
+            # simple...but...simply acne beautifuly
+            {% if layer_def["is_variable"] %}
+                self.{{ layer_name }}_var = None
+            {% endif %}
+
         {% endfor %}
 
+        # Generate Additional State Variables
+        {% for state, value in states.iteritems() %}
+            self.{{ state }} = value
+        {% endfor %}
 
-        links = [('conv1_1', L.Convolution2D(3, 64, 3, stride=1, pad=1))]
-        links += [('conv1_2', L.Convolution2D(64, 64, 3, stride=1, pad=1))]
-        links += [('_mpool1', F.MaxPooling2D(2, 2, 0, True, True))]
-        links += [('conv2_1', L.Convolution2D(64, 128, 3, stride=1, pad=1))]
-        links += [('conv2_2', L.Convolution2D(128, 128, 3, stride=1, pad=1))]
-        links += [('_mpool2', F.MaxPooling2D(2, 2, 0, True, True))]
-        links += [('conv3_1', L.Convolution2D(128, 256, 3, stride=1, pad=1))]
-        links += [('conv3_2', L.Convolution2D(256, 256, 3, stride=1, pad=1))]
-        links += [('conv3_3', L.Convolution2D(256, 256, 3, stride=1, pad=1))]
-        links += [('_mpool3', F.MaxPooling2D(2, 2, 0, True, True))]
-        links += [('conv4_1', L.Convolution2D(256, 512, 3, stride=1, pad=1))]
-        links += [('conv4_2', L.Convolution2D(512, 512, 3, stride=1, pad=1))]
-        links += [('conv4_3', L.Convolution2D(512, 512, 3, stride=1, pad=1))]
-        links += [('_mpool4', F.MaxPooling2D(2, 2, 0, True, True))]
-        links += [('conv5_1', L.Convolution2D(512, 512, 3, stride=1, pad=1))]
-        links += [('conv5_2', L.Convolution2D(512, 512, 3, stride=1, pad=1))]
-        links += [('conv5_3', L.Convolution2D(512, 512, 3, stride=1, pad=1))]
-        links += [('_mpool5', F.MaxPooling2D(2, 2, 0, True, True))]
-        links += [('fc6', L.Linear(25088, 4096))]
-        links += [('_dropout6', F.Dropout(0.5))]
-        links += [('fc7', L.Linear(4096, 4096))]
-        links += [('_dropout7', F.Dropout(0.5))]
-        links += [('fc8', L.Linear(4096, 1000))]
-
-        for link in links:
-            if not link[0].startswith('_'):
+        # Register Links with the Chainer library
+        for link in self.chain:
+            if link[0].startswith('L')::
                 self.add_link(*link)
-
-        self.forward = links
 
         # By-Default we start with in testing mode
         # Safe is good
         self.train = False
 
     def __call__(self, x, target_layer):
-        for name, f in self.forward:
+        # Run the forward
+        {% for output in network["__output__"] %} {{ output }}, {% endfor %} = \
+            forward( {% for input in network["__input__"] %} {{ input }}, {% endfor %} )
+
+        # Determine our losses *sniff*
+        {% for loss_name, loss_def in losses.iteritems() %}
+            {% if loss_name is "__loss__" %}{% continue %}{% endif %}
+            # Calculate the loss as temporary variable
+            {{ loss_name }} = {{ loss_def["type"] }}(
+                                                        {% for param, value in loss_def["params"].iteritems() %}
+                                                            {{ param }}={{ value }}
+                                                        {% endfor %}
+                                                    )
+            # Store the float value (should be smaller than the total loss)
+            self.{{ loss_name }}_var = {{ loss_name }}.data
+        {% endfor %}
+
+        # Calculate total_final_loss
+        {% for loss_name in losses[""] %}
+            # Calculate the loss as temporary variable
+            {{ loss_name }} = {{ loss_def["type"] }}(
+                                                        {% for param, value in loss_def["params"].iteritems() %}
+                                                            {{ param }}={{ value }}
+                                                        {% endfor %}
+                                                    )
+            # Store the float value (should be smaller than the total loss)
+            self.{{ loss_name }}_var = {{ loss_name }}.data
+        {% endfor %}
+
+
+        # Return output 
+
+
+    def forward(self,
+                {% for input in network["__input__"] %}
+                    {{ input }},
+                {% endfor %}
+                target_layer = None):
+
+        for name, f in self.chain:
             x = f(x)
             if name == target_layer:
                 break
 
-        return x
+        return {% for output in network["__output__"] %} {{ output }}, {% endfor %}

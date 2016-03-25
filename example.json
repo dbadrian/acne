@@ -35,10 +35,28 @@
     }
   },
   "network": {
+
+    "__input__": [
+      "data_var_1",
+      "data_var_2"
+    ],
+
+    "__output__": [
+      "layer2",
+      "layer3"
+    ],
+
+    "__states__":
+    {
+      "train": false,
+      "hubbabubba": 0.5
+    },
+
     "layer1": {
-      "type": "Convolution2D",
-      "x": "data_var_1",
+      "type": "L.Convolution2D",
+      "is_variable": false,
       "params": {
+        "x": "data_var_1",
         "in_channels": 3,
         "out_channels": 64,
         "ksize": 2,
@@ -53,9 +71,10 @@
       }
     },
     "layer2": {
-      "type": "Convolution2D",
-      "x": "layer1",
+      "type": "L.Convolution2D",
+      "is_variable": true,
       "params": {
+        "x": "layer1",
         "in_channels": 64,
         "out_channels": 64,
         "ksize": 2,
@@ -68,31 +87,18 @@
         "initialW": null,
         "initial_bias": null
       }
+    },
+    "layer3": {
+      "type": "F.dropout",
+      "is_variable": false,
+      "params": {
+        "x": "layer2",
+        "ratio": 0.5,
+        "train": "notrain"
+      }
     }
   },
   "loss": {
-    "visual_loss": {
-      "type": "mean_squared_error",
-      "x0": "layer2",
-      "x1": "data_var_1"
-    },
-    "textual_loss": {
-      "type": "mean_squared_error",
-      "x0": "layer2",
-      "x1": "data_var_2"
-    },
-    "class_loss": {
-      "type": "softmax_cross_entropy",
-      "x": "layer2",
-      "t": "data_var_3",
-      "params": {
-        "use_cudnn": true,
-        "normalize": true
-      }
-    },
-    "accuracy": {
-      "func": "1 - $class_loss"
-    },
     "__loss__": [
       [
         "visual_loss",
@@ -106,7 +112,29 @@
         "class_loss",
         1
       ]
-    ]
+    ],
+    "visual_loss": {
+      "type": "F.mean_squared_error",
+      "x0": "layer1",
+      "x1": "data_var_1"
+    },
+    "textual_loss": {
+      "type": "F.mean_squared_error",
+      "x0": "layer2",
+      "x1": "data_var_2"
+    },
+    "class_loss": {
+      "type": "F.softmax_cross_entropy",
+      "x": "layer3",
+      "t": "data_var_3",
+      "params": {
+        "use_cudnn": true,
+        "normalize": true
+      }
+    },
+    "accuracy": {
+      "func": "1 - $class_loss"
+    }
   },
   "optimizer": {
     "type": "MomentumSGD",
