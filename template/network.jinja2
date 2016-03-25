@@ -16,6 +16,7 @@ class {{ meta.name }}(chainer.Chain):
         # This allows more complex manipulations in __call__
         # and forward
         self.chain = []
+        self.variables = {}
 
         {% for layer_name, layer_def in network.iteritems() %}
             chain += [
@@ -39,7 +40,12 @@ class {{ meta.name }}(chainer.Chain):
                                 '{{ layer_name }}',
                                 f = lambda self, x: {{ layer_def["type"] }}(
                                                                                 {% for param, value in layer_def["params"].iteritems() %}
-                                                                                    {{ param }}={{ value }}
+                                                                                        
+                                                                                    {% if param in network["__states__"] %}
+                                                                                        {{ param }}={{ value }}
+                                                                                    {% else %}
+                                                                                        {{ param }}=self.{{ value }}
+                                                                                    {% endif %}
                                                                                 {% endfor %}
                                                                            )
                             )
@@ -50,7 +56,7 @@ class {{ meta.name }}(chainer.Chain):
             # so we need to be able to store intermediate results (only the data...)
             # simple...but...simply acne beautifuly
             {% if layer_def["is_variable"] %}
-                self.{{ layer_name }}_var = None
+                self.variables[{{ layer_name }}] = None
             {% endif %}
 
         {% endfor %}
@@ -60,14 +66,15 @@ class {{ meta.name }}(chainer.Chain):
             self.{{ state }} = value
         {% endfor %}
 
+        # Create Dummy Entries for Later
+        {% for loss_name in losses.keys() %}
+            self.variables[{{ loss_name }}] = None
+        {% endfor %}
+
         # Register Links with the Chainer library
         for link in self.chain:
             if link[0].startswith('L')::
                 self.add_link(*link)
-
-        # By-Default we start with in testing mode
-        # Safe is good
-        self.train = False
 
     def __call__(self,
                 {% for var in data %}
@@ -87,14 +94,17 @@ class {{ meta.name }}(chainer.Chain):
                                                             {{ param }}={{ value }}
                                                         {% endfor %}
                                                     )
-            # Store the float value (should be smaller than the total loss)
-            self.{{ loss_name }}_var = {{ loss_name }}.data
+            # Store only the float value (should be smaller than the total loss)
+            self.variables[{{ loss_name }}]
         {% endfor %}
 
-        # Calculate total_final_loss
-        self.loss = {% for loss_name, weight in losses["__loss__"] %} {{ weight }} * {{ loss_name }} +, {% endfor %} 
+        # Calculate cumulative loss
+        self.loss = \ {% for loss_name, weight in losses["__loss__"] %}
+                        {{ weight }} * {{ loss_name }} {% if not loop.last %} + \ {% endif %}
+                    {% endfor %} 
 
-        # Return output 
+        # Return output
+        return self.loss
 
 
     def forward(self,
@@ -103,8 +113,18 @@ class {{ meta.name }}(chainer.Chain):
                 {% endfor %}
                 target_layer = None):
 
+        {% for layer_name, layer_def in network %}
+
+        {% endfor %}
+
+
         for name, f in self.chain:
             x = f(x)
+
+            # Store variable
+            if name in self.variables:
+                self.variables[name] = x.data
+
             if name == target_layer:
                 break
 
