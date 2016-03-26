@@ -12,7 +12,8 @@ PATH = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_ENVIRONMENT = Environment(
     autoescape=False,
     loader=FileSystemLoader(os.path.join(PATH, 'template')),
-    trim_blocks=False)
+    trim_blocks=True,
+    lstrip_blocks=True)
 
 
 def render_template(template_filename, context):
