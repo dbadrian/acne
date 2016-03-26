@@ -44,7 +44,6 @@ class {{ meta.name }}(chainer.Chain):
                 self.add_link(link)
 
     def __call__(self, {% for var in data %}{{ var }}, {% endfor %}):
-        # Run the forward
         {% for output in network["__output__"] %}{{ output }}, {% endfor %}= forward({% for input in network["__input__"] %}{{ input }}, {% endfor %})
 
         # Determine our losses *sniff*
@@ -54,49 +53,33 @@ class {{ meta.name }}(chainer.Chain):
         {% else %}
         {{ loss_name }} = {{ loss_def["type"] }}({% for input, value in loss_def["input"].iteritems() %}{{ input }}={{ value }}, {% endfor %}{% if "params" in los_def %}{% for param, value in loss_def["params"].iteritems() %}{{ param }}={{ value }}, {% endfor %}{% endif %})
         {% endif %}
+        {% endfor %}
+
         # Store only the float value (should be smaller than the total loss)
+        {% for loss_name, loss_def in loss.iteritems() if loss_name != "__loss__" %}
         self.variables["{{ loss_name }}"]
         {% endfor %}
 
         # Calculate cumulative loss
-        self.loss = {% for loss_name, weight in loss["__loss__"] %}{{ weight }} * {{ loss_name }}{% if not loop.last %} + {% endif %}
-                    {% endfor %}
+        self.loss = {% for loss_name, weight in loss["__loss__"] %}{{ weight }}*{{ loss_name }}{% if not loop.last %} + {% endif %}{% endfor %}
 
         # Return output
         return self.loss
 
 
-    def forward(self,
-                {% for input in network["__input__"] %}
-                    {{ input }},
-                {% endfor %}
-                target_layer = None):
+    def forward(self, {% for input in network["__input__"] %}{{ input }}, {% endfor %}target_layer = None):
 
         {% for layer_name, layer_def in network["__layers__"].iteritems() %}
-            # Check if Function or Link and treat accordingly
-            {% if layer_def["type"].startswith('L')  %}
-                # It is a Link, phew
-                {{ layer_name }} = chain[{{ layer_name }}](
-                                                                {% for input, value in layer_def["input"].iteritems() %}
-                                                                    {{ input }}={{ value }}
-                                                                {% endfor %}
-                                                          )
-            {% else %}
-                # It is a Function, how annoying... they can have runtime
-                # parameters we need to handle correctly...somehow...acne...
-                {{ layer_name }} = chain[{{ layer_name }}](self, # TODO: not sure if necessary to call with self...test that
-                                                                {% for input, value in layer_def["input"].iteritems() %}
-                                                                    {{ input }}={{ value }}
-                                                                {% endfor %}
-                                                          )
-            {% endif %}
+        {% if layer_def["type"].startswith('L')  %}
+        {{ layer_name }} = chain[{{ layer_name }}]({% for input, value in layer_def["input"].iteritems() %}{{ input }}={{ value }}{% endfor %})
+        {% else %}
+        {{ layer_name }} = chain[{{ layer_name }}](self, {% for input, value in layer_def["input"].iteritems() %}{{ input }}={{ value }}{% endfor %})
+        {% endif %}
+        if "{{ layer_name }}" in self.variables:
+            self.variables["{{ layer_name }}"] = {{ layer_name }}.data
+        if "{{ layer_name }}" == target_layer:
+            break
 
-            # Store variable if defined so...
-            if "{{ layer_name }}" in self.variables:
-                self.variables["{{ layer_name }}"] = {{ layer_name }}.data
-
-            if "{{ layer_name }}" == target_layer:
-                break
         {% endfor %}
 
-        return {% for output in network["__output__"] %} {{ output }}, {% endfor %}
+        return{% for output in network["__output__"] %} {{ output }},{% endfor %}
