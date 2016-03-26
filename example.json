@@ -1,6 +1,6 @@
 {
   "meta": {
-    "name": "The Best Network in the world",
+    "name": "ConvDNNTest",
     "work_dir": "will store shit",
     "eval_dir": "where to post evaluations",
     "model_dir": "where to store models",
@@ -46,61 +46,62 @@
       "layer3"
     ],
 
-    "__states__":
-    {
+    "__states__": {
       "train": false,
       "hubbabubba": 0.5
     },
 
-    "layer1": {
-      "type": "L.Convolution2D",
-      "is_variable": false,
-      "input": {
-        "x": "data_var_1",
+    "__layers__": {
+      "layer1": {
+        "type": "L.Convolution2D",
+        "is_variable": false,
+        "input": {
+          "x": "data_var_1",
+        },
+        "params": {
+          "in_channels": 3,
+          "out_channels": 64,
+          "ksize": 2,
+          "stride": 1,
+          "pad": 0,
+          "wscale": 1,
+          "bias": 0,
+          "nobias": false,
+          "use_cudnn": true,
+          "initialW": null,
+          "initial_bias": null
+        }
       },
-      "params": {
-        "in_channels": 3,
-        "out_channels": 64,
-        "ksize": 2,
-        "stride": 1,
-        "pad": 0,
-        "wscale": 1,
-        "bias": 0,
-        "nobias": false,
-        "use_cudnn": true,
-        "initialW": null,
-        "initial_bias": null
-      }
-    },
-    "layer2": {
-      "type": "L.Convolution2D",
-      "is_variable": true,
-      "input": {
-        "x": "layer1",
+      "layer2": {
+        "type": "L.Convolution2D",
+        "is_variable": true,
+        "input": {
+          "x": "layer1",
+        },
+        "params": {
+          "in_channels": 64,
+          "out_channels": 64,
+          "ksize": 2,
+          "stride": 1,
+          "pad": 0,
+          "wscale": 1,
+          "bias": 0,
+          "nobias": false,
+          "use_cudnn": true,
+          "initialW": null,
+          "initial_bias": null
+        }
       },
-      "params": {
-        "in_channels": 64,
-        "out_channels": 64,
-        "ksize": 2,
-        "stride": 1,
-        "pad": 0,
-        "wscale": 1,
-        "bias": 0,
-        "nobias": false,
-        "use_cudnn": true,
-        "initialW": null,
-        "initial_bias": null
-      }
-    },
-    "layer3": {
-      "type": "F.dropout",
-      "is_variable": false,
-      "input": {
-        "x": "layer2",
-      },
-      "params": {
-        "ratio": 0.5,
-        "train": "notrain"
+      "layer3": {
+        "type": "F.dropout",
+        "is_variable": false,
+        "input": {
+          "x": "layer2",
+        },
+        "params": {
+          "ratio": 0.5,
+          "train": "train"
+        }
       }
     }
   },
@@ -121,18 +122,24 @@
     ],
     "visual_loss": {
       "type": "F.mean_squared_error",
-      "x0": "layer1",
-      "x1": "data_var_1"
+      "input": {
+        "x0": "layer1",
+        "x1": "data_var_1"
+      }
     },
     "textual_loss": {
       "type": "F.mean_squared_error",
-      "x0": "layer2",
-      "x1": "data_var_2"
+      "input": {
+        "x0": "layer2",
+        "x1": "data_var_2"
+      }
     },
     "class_loss": {
       "type": "F.softmax_cross_entropy",
-      "x": "layer3",
-      "t": "data_var_3",
+      "input": {
+        "x": "layer3",
+        "t": "data_var_3",
+      },
       "params": {
         "use_cudnn": true,
         "normalize": true
