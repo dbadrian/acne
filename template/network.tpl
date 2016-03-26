@@ -19,7 +19,7 @@ class {{ meta.name }}(chainer.Chain):
         # and forward
         self.chain = OrderedDict()
         {% for layer_name, layer_def in network["__layers__"].iteritems() %}
-        chain['{{ layer_name }}'] = {% if layer_def["type"].startswith('L')  %} {{ layer_def["type"] }}({% for param, value in layer_def["params"].iteritems() %}{{ param }}={{ value }},{% endfor %}){% else %}lambda self, {% for input in layer_def["input"].keys() %}{{ input }}{% endfor %}: {{ layer_def["type"] }}({% for input, value in layer_def["input"].iteritems() %}{{ input }}={{ value }},{% endfor %}{% for param, value in layer_def["params"].iteritems() %}{% if param in network["__states__"] %}{{ param }}=self.{{ value }},{% else %}{{ param }}={{ value }},{% endif %}{% endfor %}){% endif %}
+        self.chain['{{ layer_name }}'] = {% if layer_def["type"].startswith('L')  %} {{ layer_def["type"] }}({% for param, value in layer_def["params"].iteritems() %}{{ param }}={{ value }},{% endfor %}){% else %}lambda self, {% for input in layer_def["input"].keys() %}{{ input }}{% endfor %}: {{ layer_def["type"] }}({% for input, value in layer_def["input"].iteritems() %}{{ input }}={{ value }},{% endfor %}{% for param, value in layer_def["params"].iteritems() %}{% if param in network["__states__"] %}{{ param }}=self.{{ value }},{% else %}{{ param }}={{ value }},{% endif %}{% endfor %}){% endif %}
 
         {% endfor %}
 
@@ -30,7 +30,7 @@ class {{ meta.name }}(chainer.Chain):
 
         # Generate Additional State Variables
         {% for state, value in network['__states__'].iteritems() %}
-        self.{{ state }} = value
+        self.{{ state }} = {{ value }}
         {% endfor %}
 
         # Create Dummy Entries for Later
@@ -40,11 +40,11 @@ class {{ meta.name }}(chainer.Chain):
 
         # Register Links with the Chainer library
         for link_name, link in self.chain.iteritems():
-            if llink_name.startswith('L')::
+            if link_name.startswith('L'):
                 self.add_link(link)
 
     def __call__(self, {% for var in data %}{{ var }}, {% endfor %}):
-        {% for output in network["__output__"] %}{{ output }}, {% endfor %}= forward({% for input in network["__input__"] %}{{ input }}, {% endfor %})
+        ({% for output in network["__output__"] %}{{ output }}, {% endfor %}) = self.forward({% for input in network["__input__"] %}{{ input }}, {% endfor %})
 
         # Determine our losses *sniff*
         {% for loss_name, loss_def in loss.iteritems() if loss_name != "__loss__" %}
@@ -78,8 +78,7 @@ class {{ meta.name }}(chainer.Chain):
         if "{{ layer_name }}" in self.variables:
             self.variables["{{ layer_name }}"] = {{ layer_name }}.data
         if "{{ layer_name }}" == target_layer:
-            break
+            return {{ layer_name }}
 
         {% endfor %}
-
         return{% for output in network["__output__"] %} {{ output }},{% endfor %}
