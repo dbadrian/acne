@@ -67,7 +67,7 @@ class {{ meta.name }}(chainer.Chain):
         return self.loss
 
 
-    def forward(self, {% for input in network["__input__"] %}{{ input }}, {% endfor %}target_layer = None):
+    def forward(self, {% for input in network["__input__"] %}{{ input }}, {% endfor %}target_layer=None):
 
         {% for layer_name, layer_def in network["__layers__"].iteritems() %}
         {% if layer_def["type"].startswith('L')  %}

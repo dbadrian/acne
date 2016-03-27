@@ -2,9 +2,11 @@
 
 import os
 import argparse
+from collections import OrderedDict
 
 
 import ujson
+import json
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -44,7 +46,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # Load Json
     with open(args.network, 'r') as f:
-        nn = ujson.load(f)
+        nn = json.load(f, object_pairs_hook=OrderedDict)
 
     # Generate Network for the lolz
     create_network_py(nn, args.out)
