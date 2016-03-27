@@ -20,5 +20,5 @@ GENERATE NETWORK:
 
 	todo:
 
-	change outer layer to lists, as a dict is really not required on that scope
-	we need ordereddict otherwise, but still we only iterate over it anyWAY
+	functionialities:
+		a repeater mode of a node, in case you cascade many layers

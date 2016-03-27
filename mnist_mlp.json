@@ -27,8 +27,7 @@
     ],
 
     "__states__": {
-      "train": false,
-      "hubbabubba": 0.5
+      "train": false
     },
 
     "__layers__": {
