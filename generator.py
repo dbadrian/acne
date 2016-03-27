@@ -5,8 +5,8 @@ import argparse
 from collections import OrderedDict
 
 
-import ujson
 import json
+import autopep8
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -32,6 +32,7 @@ def create_network_py(network, out):
     #
     with open(out, 'w') as f:
         py = render_template('network.tpl', context)
+        py = autopep8.fix_code(py, options={'aggressive': 1})
         f.write(py)
 
 
