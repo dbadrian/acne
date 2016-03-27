@@ -31,15 +31,10 @@ class {{ meta.name }}(chainer.Chain):
         self.{{ state }} = {{ value }}
         {% endfor %}
 
-        # Create Dummy Entries for Later
-        {% for loss_name in loss.keys() %}
-        self.variables["{{ loss_name }}"] = None
-        {% endfor %}
-
         # Register Links with the Chainer library
-        for link_name, link in self.chain.iteritems():
-            if link_name.startswith('L'):
-                self.add_link(link)
+        {% for layer_name, layer_def in network["__layers__"].iteritems() if layer_def["type"].startswith('L') %}
+        self.add_link('{{ layer_name }}', self.chain['{{ layer_name }}'])
+        {% endfor %}
 
     def __call__(self, {% for var in data %}{{ var }}, {% endfor %}):
         ({% for output in network["__output__"] %}{{ output }}, {% endfor %}) = self.forward({% for input in network["__input__"] %}{{ input }}, {% endfor %})
@@ -55,7 +50,7 @@ class {{ meta.name }}(chainer.Chain):
 
         # Store only the float value (should be smaller than the total loss)
         {% for loss_name, loss_def in loss.iteritems() if loss_name != "__loss__" %}
-        self.variables["{{ loss_name }}"] = {{ loss_name }}.data
+        self.{{ loss_name }} = {{ loss_name }}.data
         {% endfor %}
 
         # Calculate cumulative loss

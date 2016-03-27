@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "name": "MnistMLP"
+  },
+  "data": {
+    "mnist_input": {
+      "name": "Visual",
+      "shape": [
+        784,
+        0
+      ],
+      "dtype": "uint8",
+      "container": "path/to/the/container/var1"
+    },
+    "mnist_label": {
+      "name": "Class Labels"
+    }
+  },
+  "network": {
+
+    "__input__": [
+      "mnist_input"
+    ],
+
+    "__output__": [
+      "l3"
+    ],
+
+    "__states__": {
+      "train": false,
+      "hubbabubba": 0.5
+    },
+
+    "__layers__": {
+      "l1": {
+        "type": "L.Linear",
+        "is_variable": false,
+        "input": {
+          "x": "mnist_input"
+        },
+        "params": {
+          "in_size": 784,
+          "out_size": 1000
+        }
+      },
+      "relu1": {
+        "type": "F.relu",
+        "is_variable": false,
+        "input": {
+          "x": "l1"
+        },
+        "params": {
+        }
+      },
+      "l2": {
+        "type": "L.Linear",
+        "is_variable": false,
+        "input": {
+          "x": "relu1"
+        },
+        "params": {
+          "in_size": 1000,
+          "out_size": 1000
+        }
+      },
+      "relu2": {
+        "type": "F.relu",
+        "is_variable": false,
+        "input": {
+          "x": "l2"
+        },
+        "params": {
+        }
+      },
+      "l3": {
+        "type": "L.Linear",
+        "is_variable": false,
+        "input": {
+          "x": "relu2"
+        },
+        "params": {
+          "in_size": 1000,
+          "out_size": 10
+        }
+      }
+    }
+  },
+  "loss": {
+    "__loss__": [
+      [
+        "class_loss",
+        1.0
+      ]
+    ],
+    "class_loss": {
+      "type": "F.softmax_cross_entropy",
+      "input": {
+        "x": "l3",
+        "t": "mnist_label"
+      },
+      "params": {}
+    },
+    "accuracy": {
+      "type": "F.evaluation.accuracy.accuracy",
+      "input": {
+        "y": "l3",
+        "t": "mnist_label"
+      }
+    }
+  },
+  "optimizer": {
+    "type": "MomentumSGD",
+    "params": {
+      "lr": 0.01,
+      "momentum": 0.9
+    }
+  }
+}
