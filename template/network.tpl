@@ -48,7 +48,7 @@ class {{ meta.name }}(chainer.Chain):
         {% if "func" in loss_def %}
         {{ loss_name }} = {{loss_def["func"]}}
         {% else %}
-        {{ loss_name }} = {{ loss_def["type"] }}({% for input, value in loss_def["input"].iteritems() %}{{ input }}={{ value }}, {% endfor %}{% if "params" in los_def %}{% for param, value in loss_def["params"].iteritems() %}{{ param }}={{ value }}, {% endfor %}{% endif %})
+        {{ loss_name }} = {{ acne.chainer_loss(loss_def) }}
         {% endif %}
         {% endfor %}
 

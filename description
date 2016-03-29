@@ -10,7 +10,6 @@ GENERATE NETWORK:
 	and if a minimum of certain things are defined, such as layers etc.
 
 	i) 	Generate dictionary containing "name": function
-	ii) 
 
 	Use
 		getattr(object, attrname)
@@ -22,3 +21,8 @@ GENERATE NETWORK:
 
 	functionialities:
 		a repeater mode of a node, in case you cascade many layers
+
+
+	test:
+
+	how does memory consumption vary if you store severla loss functions...

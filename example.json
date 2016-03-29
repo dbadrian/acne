@@ -63,13 +63,6 @@
           "out_channels": 64,
           "ksize": 2,
           "stride": 1,
-          "pad": 0,
-          "wscale": 1,
-          "bias": 0,
-          "nobias": false,
-          "use_cudnn": true,
-          "initialW": null,
-          "initial_bias": null
         }
       },
       "layer2": {
@@ -83,13 +76,6 @@
           "out_channels": 64,
           "ksize": 2,
           "stride": 1,
-          "pad": 0,
-          "wscale": 1,
-          "bias": 0,
-          "nobias": false,
-          "use_cudnn": true,
-          "initialW": null,
-          "initial_bias": null
         }
       },
       "layer3": {
