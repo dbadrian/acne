@@ -1,15 +1,12 @@
 {
   "meta": {
     "name": "ConvDNNTest",
-    "work_dir": "will store shit",
-    "eval_dir": "where to post evaluations",
-    "model_dir": "where to store models",
     "generate_computational_graph": true,
     "mean_image": "maybe just the name could be sufficient because I will keep it in the lmdb folder???",
-    "batchsize": 250, # defined overall and split accros the gpus...
-    "val_batchsize": 40, # defined overall and split accross the gpus..
+    "batchsize": 250,
+    "val_batchsize": 40,
     "epoch": 200,
-    "jobs": 48 # if even needed
+    "jobs": 48
   },
   "data": {
     "data_var_1": {
@@ -23,24 +20,14 @@
       "container": "lmdb",
       "data_path": "path/to/container/or/json/dict"
     },
-    "data_shit": {
-      "name": "Visual",
-      "shape": [
-        256,
-        256,
-        3
-      ],
-      "dtype": "uint8",
-      "container": "raw",
-      "data_path": "path/to/container/or/json/dict"
-    },
     "data_var_2": {
       "name": "Textual",
       "shape": [
         300
       ],
       "dtype": "float32",
-      "container": "path/to/the/container/var2"
+      "container": "lmdb",
+      "data_path": "path/to/container/or/json/dict"
     },
     "data_var_3": {
       "name": "Class Labels",
@@ -48,7 +35,8 @@
         1645458
       ],
       "dtype": "float32",
-      "container": "path/to/the/container/var2"
+      "container": "lmdb",
+      "data_path": "path/to/container/or/json/dict"
     }
   },
   "network": {
