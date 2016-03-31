@@ -12,9 +12,9 @@
     "data_var_1": {
       "name": "Visual",
       "shape": [
+        3,
         256,
-        256,
-        3
+        256
       ],
       "dtype": "uint8",
       "container": "lmdb",

@@ -32,8 +32,6 @@ import pinterest.features as features
 import pinterest.utils as utils
 from pinterest.evaluation import classifier
 
-import network_generator
-
 from {{meta["name"]}} import {{meta["name"]}}
 
 class {{meta.name}}Trainer(object):
@@ -57,7 +55,7 @@ class {{meta.name}}Trainer(object):
         self.logger = threading.Thread(target=log_result)
         self.logger.daemon = True
 
-        assert 50000 % args.val_batchsize == 0
+        assert 50000 % {{meta["val_batchsize"]}} == 0
         if args.test:
             denominator = 1
         else:
@@ -113,21 +111,21 @@ class {{meta.name}}Trainer(object):
         # Trainer
         graph_generated = False
         while True:
-            while data_q.empty():
+            while self.data_q.empty():
                 time.sleep(0.1)
-            inp = data_q.get()
+            inp = self.data_q.get()
             if inp == 'end':  # quit
-                res_q.put('end')
+                self.res_q.put('end')
                 # Save final model
                 serializers.save_npz(args.out, model)
                 serializers.save_npz(args.outstate, optimizer)
                 break
             elif inp == 'train':  # restart training
-                res_q.put('train')
+                self.res_q.put('train')
                 model.train = True
                 continue
             elif inp == 'val':  # start validation
-                res_q.put('val')
+                self.res_q.put('val')
                 serializers.save_npz(args.out, model)
                 serializers.save_npz(args.outstate, optimizer)
                 model.train = False
@@ -148,7 +146,7 @@ class {{meta.name}}Trainer(object):
             else:
                 model(x, t)
 
-            res_q.put((float(model.loss.data), float(model.accuracy.data)))
+            self.res_q.put((float(model.loss.data), float(model.accuracy.data)))
             del x, t
 
     def feed_data(self):
@@ -156,36 +154,39 @@ class {{meta.name}}Trainer(object):
         i = 0
         count = 0
 
-        x_batch = np.ndarray(
-            (args.batchsize, 3, model.insize, model.insize), dtype=np.float32)
-        y_batch = np.ndarray((args.batchsize,), dtype=np.int32)
-        val_x_batch = np.ndarray(
-            (args.val_batchsize, 3, model.insize, model.insize), dtype=np.float32)
-        val_y_batch = np.ndarray((args.val_batchsize,), dtype=np.int32)
+        {% for name, desc in data.iteritems() %}
+        {{ name }}_batch = np.ndarray(({{meta["batchsize"]}}, 
+            {%- for dim in desc["shape"] -%}
+                {{dim}}, 
+            {%- endfor -%}), dtype=np.{{desc["dtype"]}})
+        {% endfor %}
 
-        batch_pool = [None] * args.batchsize
-        val_batch_pool = [None] * args.val_batchsize
-        pool = multiprocessing.Pool(args.loaderjob)
-        data_q.put('train')
+        {% for name, desc in data.iteritems() %}
+        val_{{ name }}_batch = np.ndarray(({{meta["val_batchsize"]}}, 
+            {%- for dim in desc["shape"] -%}
+                {{dim}}, 
+            {%- endfor -%}), dtype=np.{{desc["dtype"]}})
+        {% endfor %}
+
+        self.data_q.put('train')
         for epoch in six.moves.range(1, 1 + args.epoch):
-            print('epoch', epoch, file=sys.stderr)
-            print('learning rate', optimizer.lr, file=sys.stderr)
+            # print('epoch', epoch, file=sys.stderr)
+            # print('learning rate', optimizer.lr, file=sys.stderr)
             perm = np.random.permutation(len(train_list))
             for idx in perm:
-                path, label = train_list[idx]
-                batch_pool[i] = pool.apply_async(read_image, (path, False, True))
-                y_batch[i] = label
+                
+                
                 i += 1
 
-                if i == args.batchsize:
+                if i == {{meta["batchsize"]}}:
                     for j, x in enumerate(batch_pool):
                         x_batch[j] = x.get()
-                    data_q.put((x_batch.copy(), y_batch.copy()))
+                    self.data_q.put((x_batch.copy(), y_batch.copy()))
                     i = 0
 
                 count += 1
                 if count % denominator == 0:
-                    data_q.put('val')
+                    self.data_q.put('val')
                     j = 0
                     for path, label in val_list:
                         val_batch_pool[j] = pool.apply_async(
@@ -193,17 +194,17 @@ class {{meta.name}}Trainer(object):
                         val_y_batch[j] = label
                         j += 1
 
-                        if j == args.val_batchsize:
+                        if j == {{meta["val_batchsize"]}}:
                             for k, x in enumerate(val_batch_pool):
                                 val_x_batch[k] = x.get()
-                            data_q.put((val_x_batch.copy(), val_y_batch.copy()))
+                            self.data_q.put((val_x_batch.copy(), val_y_batch.copy()))
                             j = 0
-                    data_q.put('train')
+                    self.data_q.put('train')
 
             optimizer.lr *= 0.97
         pool.close()
         pool.join()
-        data_q.put('end')
+        self.data_q.put('end')
 
     def log_result(self):
         # Logger
@@ -213,7 +214,7 @@ class {{meta.name}}Trainer(object):
         begin_at = time.time()
         val_begin_at = None
         while True:
-            result = res_q.get()
+            result = self.res_q.get()
             if result == 'end':
                 print(file=sys.stderr)
                 break
@@ -235,10 +236,10 @@ class {{meta.name}}Trainer(object):
             if train:
                 train_count += 1
                 duration = time.time() - begin_at
-                throughput = train_count * args.batchsize / duration
+                throughput = train_count * {{meta["batchsize"]}} / duration
                 sys.stderr.write(
                     '\rtrain {} updates ({} samples) time: {} ({} images/sec)'
-                    .format(train_count, train_count * args.batchsize,
+                    .format(train_count, train_count * {{meta["batchsize"]}},
                             datetime.timedelta(seconds=duration), throughput))
 
                 train_cur_loss += loss
@@ -253,19 +254,19 @@ class {{meta.name}}Trainer(object):
                     train_cur_loss = 0
                     train_cur_accuracy = 0
             else:
-                val_count += args.val_batchsize
+                val_count += {{meta["val_batchsize"]}}
                 duration = time.time() - val_begin_at
                 throughput = val_count / duration
                 sys.stderr.write(
                     '\rval   {} batches ({} samples) time: {} ({} images/sec)'
-                    .format(val_count / args.val_batchsize, val_count,
+                    .format(val_count / {{meta["val_batchsize"]}}, val_count,
                             datetime.timedelta(seconds=duration), throughput))
 
                 val_loss += loss
                 val_accuracy += accuracy
                 if val_count == 50000:
-                    mean_loss = val_loss * args.val_batchsize / 50000
-                    mean_error = 1 - val_accuracy * args.val_batchsize / 50000
+                    mean_loss = val_loss * {{meta["val_batchsize"]}} / 50000
+                    mean_error = 1 - val_accuracy * {{meta["val_batchsize"]}} / 50000
                     print(file=sys.stderr)
                     print(json.dumps({'type': 'val', 'iteration': train_count,
                                       'error': mean_error, 'loss': mean_loss}))
